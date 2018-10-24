@@ -54,6 +54,9 @@ rem of arguments (up to the command line limit, anyway).
 
 :setupArgs
 if ""%1""=="""" goto doneStart
+if ""%1""==""start"" goto checkStart
+if ""%1""==""stop"" goto checkStop
+if ""%1""==""restart"" goto checkRestart
 
 if ""%1""==""debug""    goto commandDebug
 if ""%1""==""-debug""   goto commandDebug
@@ -77,6 +80,32 @@ goto runServer
 echo Please specify the debug port after the --debug option
 goto end
 
+:checkStart
+set PID_FILE_PATH= %MESSAGE_BROKER_HOME%\broker.pid
+set /p PID=< %PID_FILE_PATH%
+tasklist /fi "PID eq %PID%" |find ":" > nul
+if errorlevel 1 echo "Broker is already running"&goto end
+goto doneStart
+
+:checkStop
+set PID_FILE_PATH= %MESSAGE_BROKER_HOME%\broker.pid
+set /p PID=< %PID_FILE_PATH%
+tasklist /fi "PID eq %PID%" |find ":" > nul
+if errorlevel 1 taskkill /PID %PID% /F&goto end
+echo "Server is not running"
+goto end
+
+:checkRestart
+set PID_FILE_PATH= %MESSAGE_BROKER_HOME%\broker.pid
+set /p PID=< %PID_FILE_PATH%
+tasklist /fi "PID eq %PID%" |find ":" > nul
+if errorlevel 1 taskkill /PID %PID% /F
+goto waitForProcessKill
+
+:waitForProcessKill
+tasklist /fi "PID eq %PID%" |find ":" > nul
+if errorlevel 1 goto waitForProcessKill
+goto doneStart
 
 :doneStart
 if "%OS%"=="Windows_NT" @setlocal
