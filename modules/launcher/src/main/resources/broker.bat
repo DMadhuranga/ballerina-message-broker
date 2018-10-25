@@ -23,6 +23,7 @@ rem ----- if JAVA_HOME is not set we're not happy ------------------------------
 
 if "%JAVA_HOME%" == "" goto noJavaHome
 if not exist "%JAVA_HOME%\bin\java.exe" goto noJavaHome
+set JAVA_CMD="%JAVA_HOME%\bin\java"
 goto checkServer
 
 :noJavaHome
@@ -32,6 +33,8 @@ goto end
 rem ----- set MESSAGE_BROKER_HOME ----------------------------
 :checkServer
 rem %~sdp0 is expanded pathname of the current script under NT with spaces in the path removed
+set PID_FILE_PATH= %MESSAGE_BROKER_HOME%\broker.pid
+set /p PID=< %PID_FILE_PATH%
 set MESSAGE_BROKER_HOME=%~sdp0..
 SET curDrive=%cd:~0,1%
 SET brokerDrive=%MESSAGE_BROKER_HOME:~0,1%
@@ -81,23 +84,19 @@ echo Please specify the debug port after the --debug option
 goto end
 
 :checkStart
-set PID_FILE_PATH= %MESSAGE_BROKER_HOME%\broker.pid
-set /p PID=< %PID_FILE_PATH%
+set JAVA_CMD=start  "" "%JAVA_HOME%\bin\javaw"
 tasklist /fi "PID eq %PID%" |find ":" > nul
 if errorlevel 1 echo "Broker is already running"&goto end
 goto doneStart
 
 :checkStop
-set PID_FILE_PATH= %MESSAGE_BROKER_HOME%\broker.pid
-set /p PID=< %PID_FILE_PATH%
 tasklist /fi "PID eq %PID%" |find ":" > nul
 if errorlevel 1 taskkill /PID %PID% /F&goto end
 echo "Server is not running"
 goto end
 
 :checkRestart
-set PID_FILE_PATH= %MESSAGE_BROKER_HOME%\broker.pid
-set /p PID=< %PID_FILE_PATH%
+set JAVA_CMD=start  "" "%JAVA_HOME%\bin\javaw"
 tasklist /fi "PID eq %PID%" |find ":" > nul
 if errorlevel 1 taskkill /PID %PID% /F
 goto waitForProcessKill
@@ -130,7 +129,7 @@ rem -Dcom.sun.management.jmxremote.authenticate=false
 set CMD_LINE_ARGS=-Xbootclasspath/a:%MESSAGE_BROKER_XBOOTCLASSPATH% -Xms256m -Xmx1024m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath="%MESSAGE_BROKER_HOME%\heap-dump.hprof" -classpath %MESSAGE_BROKER_HOME%\lib\* %JAVA_OPTS% -Dmessage.broker.home="%MESSAGE_BROKER_HOME%" -Djava.command="%JAVA_HOME%\bin\java" -Djava.opts="%JAVA_OPTS%" -Dlog4j.configuration="file:%MESSAGE_BROKER_HOME%\conf\log4j.properties" -Dbroker.config="%MESSAGE_BROKER_HOME%\conf\broker.yaml"  -Dbroker.users.config="%MESSAGE_BROKER_HOME%\conf\security\users.yaml" -Dtransports.netty.conf="%MESSAGE_BROKER_HOME%\conf\admin-service-transports.yaml" -Dbroker.classpath=%MESSAGE_BROKER_HOME%\lib\* -Dfile.encoding=UTF8
 
 :runJava
-"%JAVA_HOME%\bin\java" %CMD_LINE_ARGS% io.ballerina.messaging.broker.Main %CMD%
+%JAVA_CMD% %CMD_LINE_ARGS% io.ballerina.messaging.broker.Main %CMD%
 :end
 goto endlocal
 
